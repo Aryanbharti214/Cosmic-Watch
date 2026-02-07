@@ -8,6 +8,8 @@ const app = express()
 const neoRoutes = require("./routes/neo.routes")
 
 app.use("/api/neo", neoRoutes)
+const notificationRoutes = require("./routes/notification.routes")
+app.use("/api/notifications", notificationRoutes)
 
 
 const watchlistRoutes = require("./routes/watchlist.routes")
@@ -15,6 +17,8 @@ app.use("/api/watchlist", watchlistRoutes)
 
 const systemRoutes = require("./routes/system.routes")
 app.use("/api/system", systemRoutes)
+const healthRoutes = require("./routes/health.routes");
+app.use("/api", healthRoutes);
 
 
 app.use(cors())
