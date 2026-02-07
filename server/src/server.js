@@ -115,7 +115,7 @@ startAlertScheduler(io)
 
 app.get("/", (req, res) => {
   res.json({
-    status: "Cosmic Watch Backend Running 🚀"
+    status: "Cosmic Watch Backend Running"
   })
 })
 
