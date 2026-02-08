@@ -47,21 +47,18 @@ app.use("/api/watchlist", watchlistRoutes)
 app.use("/api/system", systemRoutes)
 app.use("/api", healthRoutes)
 
-// ------------------
-// SERVE FRONTEND BUILD
-// ------------------
+
 
 const frontendPath = path.join(__dirname, "../../client/dist")
 
 app.use(express.static(frontendPath))
 
-app.get((req, res) => {
+// SPA fallback (NO "*" , NO "/*")
+app.use((req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"))
 })
 
-// ------------------
-// ERROR HANDLER
-// ------------------
+
 
 app.use(errorHandler)
 
