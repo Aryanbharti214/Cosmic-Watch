@@ -33,3 +33,20 @@ exports.getWatchlist = async (req, res) => {
 
   res.status(200).json(list)
 }
+
+exports.removeFromWatchlist = async (req, res) => {
+  try {
+    const { neoId } = req.params
+
+    await Watchlist.findOneAndDelete({
+      neoId,
+      userId: req.user.id
+    })
+
+    res.json({ message: "Removed from watchlist" })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message })
+  }
+}
+

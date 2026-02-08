@@ -8,8 +8,8 @@ const connectToDB = require("./config/db")
 const { connectRedis } = require("./config/redis")
 const Chat = require("./models/chat.model")
 
-//   Initialize Database Connections
 
+//   Initialize Database Connections
 
 async function initConnections() {
   try {
@@ -31,53 +31,57 @@ initConnections()
 const server = http.createServer(app)
 
 
- //  Socket.IO Setup
+//   Socket.IO Setup
 
 
 const io = new Server(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
+    origin: process.env.CLIENT_URL,
+    methods: ["GET", "POST"],
+    credentials: true
   }
 })
+
 
 app.set("io", io)
 
 
- //  Socket Events
+//   Socket Events
 
 
 io.on("connection", (socket) => {
-  console.log(" User connected:", socket.id)
+  console.log("User connected:", socket.id)
 
-  /* Join Room */
+//JOIN ROOM (Dynamic) 
   socket.on("join-asteroid", async (asteroidId) => {
+    if (!asteroidId) return
+
     socket.join(asteroidId)
 
     console.log(`${socket.id} joined room: ${asteroidId}`)
-    console.log(
-      "Room members:",
-      io.sockets.adapter.rooms.get(asteroidId)?.size || 0
-    )
 
     try {
       const messages = await Chat.find({ asteroidId })
+        .populate("userId", "name") // get username
         .sort({ createdAt: -1 })
-        .limit(20)
+        .limit(30)
         .lean()
 
       socket.emit("chat-history", messages.reverse())
     } catch (error) {
-      console.error(" Failed to load chat history:", error.message)
+      console.error("Failed to load chat history:", error.message)
     }
   })
 
-  /* Live Message Handling */
+  // SEND MESSAGE 
   socket.on("send-message", async (data) => {
     try {
       const { asteroidId, userId, message } = data
 
-      console.log(` Message in ${asteroidId}:`, message)
+      if (!asteroidId || !userId || !message) {
+        console.log("Invalid chat payload")
+        return
+      }
 
       const savedMessage = await Chat.create({
         asteroidId,
@@ -85,46 +89,36 @@ io.on("connection", (socket) => {
         message
       })
 
-      io.to(asteroidId).emit("receive-message", {
-        asteroidId,
-        userId,
-        message,
-        createdAt: savedMessage.createdAt
-      })
+      const populatedMessage = await savedMessage.populate(
+        "userId",
+        "name"
+      )
+
+      io.to(asteroidId).emit("receive-message", populatedMessage)
 
     } catch (error) {
-      console.error(" Chat error:", error.message)
+      console.error("Chat error:", error.message)
     }
   })
 
   socket.on("disconnect", () => {
-    console.log(" User disconnected:", socket.id)
+    console.log("User disconnected:", socket.id)
   })
 })
 
 
-//   Start Alert Scheduler
+ //  Start Alert Scheduler
 
 
 const { startAlertScheduler } = require("./services/alert.service")
 startAlertScheduler(io)
 
 
-//   Root Health Check
-
-
-app.get("/", (req, res) => {
-  res.json({
-    status: "Cosmic Watch Backend Running"
-  })
-})
-
-
-//  Start Server
+//   Start Server
 
 
 const PORT = process.env.PORT || 3000
 
 server.listen(PORT, () => {
-  console.log(` Server running on port ${PORT}`)
+  console.log(`Server running on port ${PORT}`)
 })

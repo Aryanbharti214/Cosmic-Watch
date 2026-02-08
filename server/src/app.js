@@ -1,42 +1,68 @@
 const express = require("express")
 const cors = require("cors")
+const rateLimit = require("express-rate-limit")
+const path = require("path")
 
 const authRoutes = require("./routes/auth.routes")
+const neoRoutes = require("./routes/neo.routes")
+const notificationRoutes = require("./routes/notification.routes")
+const watchlistRoutes = require("./routes/watchlist.routes")
+const systemRoutes = require("./routes/system.routes")
+const healthRoutes = require("./routes/health.routes")
+
+const { errorHandler } = require("./middleware/error.middleware")
 
 const app = express()
 
-const neoRoutes = require("./routes/neo.routes")
+// ------------------
+// CORS
+// ------------------
 
-app.use("/api/neo", neoRoutes)
-const notificationRoutes = require("./routes/notification.routes")
-app.use("/api/notifications", notificationRoutes)
+app.use(cors({
+  origin: true,
+  credentials: true
+}))
 
-
-const watchlistRoutes = require("./routes/watchlist.routes")
-app.use("/api/watchlist", watchlistRoutes)
-
-const systemRoutes = require("./routes/system.routes")
-app.use("/api/system", systemRoutes)
-const healthRoutes = require("./routes/health.routes");
-app.use("/api", healthRoutes);
-
-
-app.use(cors())
 app.use(express.json())
-const rateLimit = require("express-rate-limit")
+
+// ------------------
+// RATE LIMITING
+// ------------------
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: "Too many requests, try again later"
+  max: 100
 })
 
 app.use(limiter)
 
+// ------------------
+// API ROUTES
+// ------------------
+
 app.use("/api/auth", authRoutes)
+app.use("/api/neo", neoRoutes)
+app.use("/api/notifications", notificationRoutes)
+app.use("/api/watchlist", watchlistRoutes)
+app.use("/api/system", systemRoutes)
+app.use("/api", healthRoutes)
 
-module.exports = app
+// ------------------
+// SERVE FRONTEND BUILD
+// ------------------
 
-const { errorHandler } = require("./middleware/error.middleware")
+const frontendPath = path.join(__dirname, "../../client/dist")
+
+app.use(express.static(frontendPath))
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(frontendPath, "index.html"))
+})
+
+// ------------------
+// ERROR HANDLER
+// ------------------
 
 app.use(errorHandler)
+
+module.exports = app

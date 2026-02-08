@@ -28,3 +28,20 @@ exports.getFeed = async (req, res) => {
     res.status(500).json({ message: error.message })
   }
 }
+let cachedData = null
+let lastFetchTime = 0
+
+exports.getNeoFeed = async (req, res) => {
+  const now = Date.now()
+
+  // cache for 1 hour
+  if (cachedData && now - lastFetchTime < 3600000) {
+    return res.json(cachedData)
+  }
+
+  const response = await axios.get(NASA_URL)
+  cachedData = response.data
+  lastFetchTime = now
+
+  res.json(response.data)
+}
